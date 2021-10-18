@@ -314,6 +314,7 @@ def delete_nikki_by_id(nikki_id):
     db = None
     try:
         db = get_db()
+        db.execute('INSERT INTO backup(created, updated, at, comment, groupe) SELECT created, updated, at, comment, groupe FROM nikki WHERE id = ?', (nikki_id,))
         db.execute('DELETE FROM nikki WHERE id = ?', (nikki_id,))
         db.commit()
     except sqlite3.OperationalError:

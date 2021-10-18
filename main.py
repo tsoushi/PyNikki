@@ -11,6 +11,8 @@ if __name__ == '__main__':
     streamHandler.setFormatter(logging.Formatter('%(levelname)s : %(message)s'))
     logger.addHandler(streamHandler)
 
+SCHEMA_PATH = 'schema.sql'
+
 def get_db():
     return sqlite3.connect('nikki.sqlite3')
 
@@ -34,19 +36,15 @@ def init_db():
     db = None
     try:
         db = get_db()
-        db.execute("""\
-CREATE TABLE nikki(
-    id INTEGER PRIMARY KEY,
-    created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    comment TEXT NOT NULL,
-    groupe TEXT
-)""")
+        with open(SCHEMA_PATH, mode='r', encoding='utf-8') as schema_file:
+            db.executescript(schema_file.read())
         db.commit()
         logger.info('initialization is complete')
     except sqlite3.OperationalError:
         logger.error('failed to initialize the database')
+        raise
+    except FileNotFoundError:
+        logger.error('schema file was not found')
         raise
     finally:
         if db:
