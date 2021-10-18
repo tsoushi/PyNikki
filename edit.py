@@ -1,9 +1,13 @@
 import tkinter as tk
 import sqlite3
+from datetime import datetime
+from datetime import timedelta
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+DATABASE_PATH = 'nikki.sqlite3'
 
 class App(tk.Frame):
     def __init__(self, master):
@@ -36,6 +40,7 @@ class NikkiListbox(tk.Listbox):
         self['selectmode'] = 'extended'
         self['height'] = 30
         self['width'] = 50
+        self.bind('<Double-Button-1>', self.edit_nikki)
 
         self.load_nikki()
 
@@ -63,7 +68,7 @@ class NikkiListbox(tk.Listbox):
         self._nikki_list.pop(index)
         self.delete(index)
 
-    def edit_nikki(self):
+    def edit_nikki(self, *args):
         indexes = self.curselection()
         if not indexes:
             self._logger.info('no contents selected')
@@ -113,7 +118,7 @@ class Editor(tk.Toplevel):
         label_groupe = tk.Label(self, text='groupe')
 
         entry_id = tk.Entry(self, textvariable=var_id, state='readonly')
-        entry_created = tk.Entry(self, textvariable=var_created)
+        frame_datetime = DatetimeFrame(self, var=var_created)
         text_comment = tk.Text(self)
         text_comment.insert('1.0', nikki[2])
         entry_groupe = tk.Entry(self, textvariable=var_groupe)
@@ -130,7 +135,7 @@ class Editor(tk.Toplevel):
         label_comment.grid(column=0, row=2)
         label_groupe.grid(column=0, row=3)
         entry_id.grid(column=1, row=0)
-        entry_created.grid(column=1, row=1)
+        frame_datetime.grid(column=1, row=1)
         text_comment.grid(column=1, row=2)
         entry_groupe.grid(column=1, row=3)
         ctrl_frame.grid(column=0, row=4, columnspan=2)
@@ -154,11 +159,87 @@ class Editor(tk.Toplevel):
     def cancel(self):
         self.destroy()
 
+class DatetimeFrame(tk.Frame):
+    DTTM_FORMAT = '%Y-%m-%d %H:%M:%S'
+    def __init__(self, master, var):
+        self._logger = logging.getLogger(f'{__name__}.DatetimeFrame')
+        self._logger.debug('initializing DatetimeFrame')
+        super().__init__(master)
 
+        self._var = var
+        self._default_var = var.get()
+
+        frame_top = tk.Frame(self)
+        button_minus7Days = tk.Button(frame_top, text='-7日', command=self.make_add_func(timedelta(days=-7)))
+        button_minus1Day = tk.Button(frame_top, text='-1日', command=self.make_add_func(timedelta(days=-1)))
+        entry_created = tk.Entry(frame_top, textvariable=var)
+        button_plus1Day = tk.Button(frame_top, text='+1日', command=self.make_add_func(timedelta(days=1)))
+        button_plus7Days = tk.Button(frame_top, text='+7日', command=self.make_add_func(timedelta(days=7)))
+
+        button_minus7Days.grid(column=0, row=0)
+        button_minus1Day.grid(column=1, row=0)
+        entry_created.grid(column=2, row=0, padx=8, pady=8)
+        button_plus1Day.grid(column=3, row=0)
+        button_plus7Days.grid(column=4, row=0)
+
+        frame_bottom = tk.Frame(self)
+        button_defaultTime = tk.Button(frame_bottom, text='もとに戻す', command=self.set_to_default)
+        button_currentTime = tk.Button(frame_bottom, text='現在時刻', command=self.set_to_current_time)
+        button_currentDatetime = tk.Button(frame_bottom, text='現在', command=self.set_to_current_datetime)
+        button_truncateTime = tk.Button(frame_bottom, text='時間切り捨て', command=self.truncate_time)
+
+        button_defaultTime.grid(column=0, row=0)
+        button_currentTime.grid(column=1, row=0)
+        button_currentDatetime.grid(column=2, row=0)
+        button_truncateTime.grid(column=3, row=0)
+
+        frame_top.grid(column=0, row=0)
+        frame_bottom.grid(column=0, row=1)
+
+
+        self._logger.debug('initializing is complete')
+
+    def _add_to_var(self, delta):
+        self._logger.debug('changing datetime')
+        dttm = self.get_dttm()
+        dttm += delta
+        self.set_dttm(dttm)
+
+    def get_dttm(self):
+        return datetime.strptime(self._var.get(), self.DTTM_FORMAT)
+
+    def set_dttm(self, dttm):
+        self._var.set(dttm.strftime(self.DTTM_FORMAT))
+
+    def make_add_func(self, delta):
+        def func():
+            self._add_to_var(delta)
+        return func
+
+    def truncate_time(self):
+        self._logger.debug('truncating time')
+        dttm = self.get_dttm()
+        dttm = dttm.replace(hour=0, minute=0, second=0)
+        self.set_dttm(dttm)
+
+    def set_to_current_time(self):
+        self._logger.debug('setting to current time')
+        now = datetime.now()
+        dttm = self.get_dttm()
+        dttm = dttm.replace(hour=now.hour, minute=now.minute, second=now.second)
+        self.set_dttm(dttm)
+
+    def set_to_current_datetime(self):
+        self._logger.debug('setting to current datetime')
+        self.set_dttm(datetime.now())
+
+    def set_to_default(self):
+        self._logger.debug('setting to default')
+        self._var.set(self._default_var)
 
 
 def get_db():
-    return sqlite3.connect('nikki.sqlite3')
+    return sqlite3.connect(DATABASE_PATH)
 
 def load_nikki_from_db(limit=100, order='DESC'):
     """read nikki from database"""
