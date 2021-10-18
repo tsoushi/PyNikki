@@ -102,7 +102,7 @@ class NikkiListbox(tk.Listbox):
 class Editor(tk.Toplevel):
     def __init__(self, master, nikki):
         self._logger = logging.getLogger(f'{__name__}.Editor')
-        self._logger.info('initializing editor')
+        self._logger.debug('initializing editor')
 
         super().__init__(master)
 
@@ -348,7 +348,7 @@ if __name__ == '__main__':
     logger.setLevel(LOGLEVEL)
     streamHandler = logging.StreamHandler()
     streamHandler.setLevel(LOGLEVEL)
-    streamHandler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+    streamHandler.setFormatter(logging.Formatter('%(levelname)s - %(name)s - %(message)s'))
     logger.addHandler(streamHandler)
 
     window = tk.Tk()
