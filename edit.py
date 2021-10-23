@@ -263,7 +263,7 @@ def load_nikki_from_db(limit=100, order='DESC'):
     db = None
     try:
         db = get_db()
-        nikki_list = db.execute("SELECT id, DATETIME(created, 'localtime') AS created, DATETIME(updated, 'localtime') AS updated, DATETIME(at, 'localtime') AS at, comment, groupe FROM nikki ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        nikki_list = db.execute("SELECT id, DATETIME(created, 'localtime') AS created, DATETIME(updated, 'localtime') AS updated, DATETIME(at, 'localtime') AS at, comment, groupe FROM nikki ORDER BY created DESC LIMIT ?", (limit,)).fetchall()
     except sqlite3.OperationalError:
         logger.error('failed to read nikki from database')
         raise
